@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+
+{% block content %}
+{% if user.is_authenticated %}
+<h1 class='text-capitalize'>Hello, {{user.username}}</h1>
+
+{% else %}
+{% include "login_form.html" %}
+
+{% endif %}
+
+{% endblock %}

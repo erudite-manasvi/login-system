@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block content %}
+{% if user.is_authenticated %}
+<div class="col-md-6 offset-md-3">
+    <h1>Profile Section</h1>
+    <form class="d-grid gap-3" method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="inlineFormInput">Username</label>
+            <input type="text" value={{user.username}} class="form-control" id="inlineFormInput" name='username'  placeholder="Enter username" required>
+        </div>
+        <div class="form-group">
+          <label for="exampleInputEmail1">Email address</label>
+          <input type="email" value={{user.email}} name='email' class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Edit</button>
+      </form>
+</div>
+
+{% endif %}
+
+{% endblock %}
