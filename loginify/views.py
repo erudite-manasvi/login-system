@@ -9,31 +9,42 @@ from django.core.serializers import serialize
 import json
 from django.forms.models import model_to_dict
 
+from .models import UserDetail
+
+current_user = {}
 # Create your views here.
 @csrf_exempt
 def login_user(request):
+    global current_user
+    
+    context = {}
+    if current_user:
+        context['username'] = current_user.username
+
+    print("context",context)
+
     if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
 
         try:
-            user = User.objects.get(email=email)
-            username = user.username
-        except User.DoesNotExist:
+            user = UserDetail.objects.get(email=email)
+
+            if password == user.password:
+                messages.success(request,'Login Successfully!')
+                
+                current_user = user
+                context['username'] = user.username
+                print(user.username,context)
+
+            else:
+                messages.error(request,'User credentials is not valid!')
+        
+        except UserDetail.DoesNotExist:
             messages.error(request, 'No user found with this email')
-            return redirect('home')
-
-        user = authenticate(request,username=username,password=password)
-
-        if user is not None:
-            login(request,user)
-            messages.success(request,'You have been Logged In')
-            return redirect('home')
-        else:
-            messages.error(request,'There was an error while Logging In')
-            return redirect('home')
-
-    return render(request,'index.html')
+            
+        # return redirect('home')
+    return render(request,'index.html',context)
 
 def register_user(request):
     if request.method=='POST':
@@ -42,7 +53,8 @@ def register_user(request):
         password = request.POST['password']
 
         try:
-            user = User.objects.create_user(username=username,email=email,password=password)
+            user = UserDetail.objects.create(username=username,email=email,password=password)
+            user.save()
             messages.success(request,"Register Successfully, Login now")
             return redirect('home')
         except Exception as e:
@@ -53,13 +65,25 @@ def register_user(request):
 
 def logout_user(request):
     logout(request)
+    global current_user
+    current_user = {}
+    print(current_user)
     messages.success(request,"Logout successfully!!")
     print("About to redirect")
     return redirect('home')
 
 def profile(request):
+    context = {}
+    try:
+        user = current_user 
+        print("profile",user) 
+        context['username'] = user.username
+        context['email'] = user.email
+    except Exception as e:
+        messages.error(request,'Please login first')
+        return redirect('home')
+
     if request.method == 'POST':
-        user = request.user
         data = request.POST  
         
         username = data['username']
@@ -72,27 +96,27 @@ def profile(request):
                 user.email = email
         
             user.save()
-
+            context['username'] = username 
+            context['email'] = email
             messages.success(request,'User updated successfully')
-        
-            return redirect('home')
+            return render(request, 'profile.html', context)
         
         except Exception as e:
             messages.error(request,str(e))
             return redirect('profile')
 
-    return render(request,'profile.html')
+    return render(request,'profile.html', context)
 
 # get all the users
 def get_users(request):
-    users = User.objects.all()
+    users = UserDetail.objects.all()
     users_serialized = serialize('json', users)
     users_json = json.loads(users_serialized)
     return JsonResponse(users_json,safe=False)
 
 # get user by id
 def get_user(request,id):
-    user = User.objects.get(id=id)
+    user = UserDetail.objects.get(id=id)
     print((user.email))
     user_dict = model_to_dict(user)
     return JsonResponse(user_dict)
@@ -101,7 +125,7 @@ def get_user(request,id):
 def delete_user(request,id):
     try:
         if id:
-            user = User.objects.get(id=id)
+            user = UserDetail.objects.get(id=id)
             user.delete()
             return JsonResponse({"message":'User deleted successfully'})
     except User.DoesNotExist:

@@ -1,8 +1,9 @@
 {% extends "layout.html" %}
 
 {% block content %}
-{% if user.is_authenticated %}
-<h1 class='text-capitalize'>Hello, {{user.username}}</h1>
+
+{% if username %}
+<h1 class='text-capitalize'>Hello, {{username}}</h1>
 
 {% else %}
 {% include "login_form.html" %}

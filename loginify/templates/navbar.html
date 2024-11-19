@@ -6,8 +6,7 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          
-          {% if user.is_authenticated %}
+          {% if username %}
           <li class="nav-item">
             <a class="nav-link" href={% url "logout" %}>Logout</a>
           </li> 
@@ -23,10 +22,10 @@
           {% endif %}
         </ul>
         
-        {% if user.is_authenticated %}
+        {% if username %}
         <a class="bg-info rounded-circle px-3 py-2 text-decoration-none" href="{% url 'profile' %}">
           <span class='h5 text-dark'>
-            {{ user.username|first|upper }}
+            {{ username|first|upper }}
           </span>
         </a>
         {% endif %}
