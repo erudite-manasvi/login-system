@@ -10,41 +10,47 @@ import json
 from django.forms.models import model_to_dict
 
 from .models import UserDetail
+from .serializer import UserSerializer
 
-current_user = {}
-# Create your views here.
-@csrf_exempt
+
 def login_user(request):
-    global current_user
-    
+    # Initialize context
     context = {}
-    if current_user:
-        context['username'] = current_user.username
-
-    print("context",context)
+    
+    if 'username' in request.session:
+        print("Already",request.session['username'])
+        try:
+            user = UserDetail.objects.get(username=request.session['username'])
+            serializer = UserSerializer(user)
+            context = serializer.data
+    
+        except UserDetail.DoesNotExist:
+            del request.session['username']
 
     if request.method == 'POST':
-        email = request.POST.get('email')
-        password = request.POST.get('password')
+        print('POST')
+        email = request.POST['email']
+        password = request.POST['password']
 
         try:
             user = UserDetail.objects.get(email=email)
 
             if password == user.password:
-                messages.success(request,'Login Successfully!')
-                
-                current_user = user
-                context['username'] = user.username
-                print(user.username,context)
-
+                request.session['username'] = user.username
+                request.session.set_expiry(20) 
+                serializer = UserSerializer(user)
+                context = serializer.data
+                messages.success(request, 'Login Successfully!')
+                return redirect('home')
+            
             else:
-                messages.error(request,'User credentials is not valid!')
+                messages.error(request, 'User credentials are not valid!')
         
         except UserDetail.DoesNotExist:
             messages.error(request, 'No user found with this email')
-            
-        # return redirect('home')
-    return render(request,'index.html',context)
+    
+    print(context)
+    return render(request, 'index.html', context)
 
 def register_user(request):
     if request.method=='POST':
@@ -63,48 +69,49 @@ def register_user(request):
         
     return render(request,'register_form.html')
 
+
+# request.session.flush() completely deletes the session from the database and cookie
+# request.session.clear() removes all session data but keeps the session key
 def logout_user(request):
-    logout(request)
-    global current_user
-    current_user = {}
-    print(current_user)
+    # logout(request)
+    request.session.flush()
     messages.success(request,"Logout successfully!!")
-    print("About to redirect")
     return redirect('home')
 
 def profile(request):
-    context = {}
+    if 'username' not in request.session:
+        messages.error(request,'Please Login First!!')
+        return redirect('home')
+    
     try:
-        user = current_user 
-        print("profile",user) 
-        context['username'] = user.username
-        context['email'] = user.email
+        user = UserDetail.objects.get(username=request.session['username'])
     except Exception as e:
-        messages.error(request,'Please login first')
+        messages.error(request,str(e))
         return redirect('home')
 
     if request.method == 'POST':
         data = request.POST  
-        
         username = data['username']
         email = data['email']
         
         try:
             if username:
                 user.username = username
+                request.session['username'] = username
             if email:
                 user.email = email
         
             user.save()
-            context['username'] = username 
-            context['email'] = email
+            
             messages.success(request,'User updated successfully')
-            return render(request, 'profile.html', context)
         
         except Exception as e:
             messages.error(request,str(e))
             return redirect('profile')
-
+        
+    serializer = UserSerializer(user)
+    context = serializer.data
+  
     return render(request,'profile.html', context)
 
 # get all the users
