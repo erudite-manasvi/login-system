@@ -1,6 +1,4 @@
-{% extends "layout.html" %} {% block content %} {% if username %}
-<h1 class="text-capitalize">
-  Hello, {{username}} {{request.session.username}}
-</h1>
+{% extends "layout.html" %} {% block content %} {% if user.username %}
+<h1 class="text-capitalize">Hello, {{ user.username }}</h1>
 
 {% else %} {% include "login_form.html" %} {% endif %} {% endblock %}
